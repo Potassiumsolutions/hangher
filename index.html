@@ -724,26 +724,43 @@ el("themeBtn").addEventListener("click", () => {
   document.documentElement.setAttribute("data-theme", t === "purple" ? "" : t);
 });
 
-// Audio
+// Audio — uses Web Audio API GainNode so volume works on iOS
 const bgMusic = el("bgMusic");
 const muteBtn = el("muteBtn");
 const volSlider = el("volSlider");
 let musicStarted = false;
+let audioCtx, gainNode;
 
-bgMusic.volume = parseFloat(volSlider.value);
+function setupAudioGraph() {
+  if (audioCtx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  audioCtx = new AC();
+  const source = audioCtx.createMediaElementSource(bgMusic);
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = parseFloat(volSlider.value);
+  source.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+}
+
+function setVolume(v) {
+  if (gainNode) gainNode.gain.value = v;
+  else bgMusic.volume = v; // fallback for browsers without Web Audio
+}
 
 function startMusic() {
   if (!musicStarted) {
     musicStarted = true;
+    setupAudioGraph();
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
     bgMusic.play().catch(() => {});
   }
 }
 
 muteBtn.addEventListener("click", () => {
   if (bgMusic.paused) {
-    bgMusic.play().catch(() => {});
+    startMusic();
     muteBtn.textContent = "🔊";
-    musicStarted = true;
   } else {
     bgMusic.pause();
     muteBtn.textContent = "🔇";
@@ -751,8 +768,9 @@ muteBtn.addEventListener("click", () => {
 });
 
 volSlider.addEventListener("input", () => {
-  bgMusic.volume = parseFloat(volSlider.value);
-  if (bgMusic.volume === 0) {
+  const v = parseFloat(volSlider.value);
+  setVolume(v);
+  if (v === 0) {
     muteBtn.textContent = "🔇";
   } else {
     muteBtn.textContent = "🔊";
