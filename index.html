@@ -73,10 +73,22 @@
 
   .right { display: flex; flex-direction: column; gap: 18px; }
 
+  .word-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
   .word {
     display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center;
     font-size: 34px; font-weight: 700; letter-spacing: 2px; min-height: 48px;
   }
+  .def-tip {
+    display: none; position: absolute; top: calc(100% + 10px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel); border: 1px solid #6a4675; border-radius: 10px;
+    padding: 10px 14px; font-size: 13px; color: var(--muted); line-height: 1.6;
+    max-width: 280px; width: max-content; text-align: left; z-index: 20;
+    pointer-events: none;
+  }
+  .def-tip em { color: var(--accent); font-style: italic; }
+  .word-wrap:hover .def-tip,
+  .word-wrap.def-open .def-tip { display: block; }
   .word .gap { width: 18px; }
   .word .slot {
     width: 30px; text-align: center; border-bottom: 4px solid var(--muted);
@@ -278,7 +290,10 @@
     </div>
 
     <div class="right">
-      <div class="word" id="word"></div>
+      <div class="word-wrap" id="wordWrap">
+        <div class="word" id="word"></div>
+        <div class="def-tip" id="defTip"></div>
+      </div>
       <div class="wrong" id="wrong">Wrong guesses: <b id="wrongList">—</b></div>
       <div class="keyboard" id="keyboard"></div>
       <div class="controls">
@@ -325,6 +340,8 @@ const catSel = el("cat");
 const modeSel = el("mode");
 const lenSel = el("len");
 const wordEl = el("word");
+const wordWrap = el("wordWrap");
+const defTip = el("defTip");
 const kbEl = el("keyboard");
 const statusEl = el("status");
 const wrongListEl = el("wrongList");
@@ -337,6 +354,35 @@ let guessed = new Set();
 let wrong = [];
 let over = false;
 let wins = 0, losses = 0;
+
+async function fetchDefinition(word) {
+  try {
+    const res = await fetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + word.toLowerCase());
+    if (!res.ok) return null;
+    const data = await res.json();
+    const meaning = data[0]?.meanings[0];
+    if (!meaning) return null;
+    const def = meaning.definitions[0]?.definition;
+    const pos = meaning.partOfSpeech;
+    return (pos ? "<em>" + pos + "</em> — " : "") + (def || "");
+  } catch { return null; }
+}
+
+function setDefinition(html) {
+  if (html) {
+    defTip.innerHTML = html;
+    wordWrap.title = "Hover to see definition";
+    wordWrap.style.cursor = "help";
+  } else {
+    defTip.innerHTML = "";
+    wordWrap.title = "";
+    wordWrap.style.cursor = "";
+  }
+}
+
+wordWrap.addEventListener("click", () => {
+  if (defTip.innerHTML) wordWrap.classList.toggle("def-open");
+});
 
 // Build category dropdown (curated categories + an online random option)
 Object.keys(WORDS).forEach(c => {
@@ -380,6 +426,8 @@ async function newGame() {
   wrong = [];
   over = false;
   secret = "";
+  setDefinition(null);
+  wordWrap.classList.remove("def-open");
   for (let i = 1; i <= NUM_PARTS; i++) el("p" + i).classList.remove("show");
   renderWrong();
   updateLeft();
@@ -404,6 +452,9 @@ async function newGame() {
   renderWord();
   statusEl.className = "status";
   statusEl.textContent = "Pick a letter to begin.";
+  if (catSel.value === ONLINE) {
+    fetchDefinition(w).then(setDefinition);
+  }
 }
 
 function renderWord(revealAll = false) {
