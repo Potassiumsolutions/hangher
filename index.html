@@ -131,6 +131,11 @@
     <div class="picks" style="display:flex;align-items:center;flex-wrap:wrap;">
       <label for="cat" style="color:var(--muted);font-size:14px;margin-right:6px;">Category</label>
       <select id="cat"></select>
+      <label for="mode" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Mode</label>
+      <select id="mode">
+        <option value="easy">Easy</option>
+        <option value="hard">Hard</option>
+      </select>
       <label for="len" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Length</label>
       <select id="len">
         <option value="0">Any</option>
@@ -204,8 +209,19 @@ const onlineCache = {};
 const MAX_MISSES = 9;
 const NUM_PARTS = 9;
 
+const COMMON = new Set(['R','S','T','L','N','E']);
+function rstlneScore(word) {
+  return [...word.toUpperCase()].filter(c => COMMON.has(c)).length;
+}
+function hardFilter(list) {
+  const scores = list.map(rstlneScore);
+  const min = Math.min(...scores);
+  return list.filter((_, i) => scores[i] === min);
+}
+
 const el = (id) => document.getElementById(id);
 const catSel = el("cat");
+const modeSel = el("mode");
 const lenSel = el("len");
 const wordEl = el("word");
 const kbEl = el("keyboard");
@@ -235,6 +251,7 @@ async function getWord() {
   let list = WORDS[catSel.value] || [];
   if (len) list = list.filter(w => w.length === len);
   if (!list.length) return null;
+  if (modeSel.value === "hard") list = hardFilter(list);
   return list[Math.floor(Math.random() * list.length)].toUpperCase();
 }
 
@@ -248,8 +265,9 @@ async function getOnlineWord(len) {
       const re = new RegExp("^[a-z]{" + n + "}$");
       onlineCache[pattern] = data.map(d => d.word).filter(w => re.test(w));
     }
-    const pool = onlineCache[pattern];
+    let pool = onlineCache[pattern];
     if (!pool || !pool.length) return null;
+    if (modeSel.value === "hard") pool = hardFilter(pool);
     return pool[Math.floor(Math.random() * pool.length)].toUpperCase();
   } catch (e) {
     return null;
@@ -403,6 +421,7 @@ document.addEventListener("keydown", (e) => {
 el("newGame").addEventListener("click", newGame);
 el("reveal").addEventListener("click", giveUp);
 catSel.addEventListener("change", newGame);
+modeSel.addEventListener("change", newGame);
 lenSel.addEventListener("change", newGame);
 
 newGame();
