@@ -19,6 +19,22 @@
     --hair: #f4a93c;
     --skirt: #ff8fc8;
   }
+
+  [data-theme="navy"] {
+    --bg: #091628; --bg2: #0e2040; --panel: #163060;
+    --ink: #e0ecff; --muted: #6a90b8; --accent: #5ab4ff;
+    --beam: #c9a36b; --line: #e0ecff; --hair: #f4a93c; --skirt: #5ab4ff;
+  }
+  [data-theme="forest"] {
+    --bg: #0c1e10; --bg2: #132918; --panel: #1c3c22;
+    --ink: #e4f5e8; --muted: #72b078; --accent: #65d87f;
+    --beam: #c9a36b; --line: #e4f5e8; --hair: #f4a93c; --skirt: #65d87f;
+  }
+  [data-theme="midnight"] {
+    --bg: #090910; --bg2: #10101c; --panel: #1a1a2c;
+    --ink: #cdd6f4; --muted: #7a7f9c; --accent: #c8a6f7;
+    --beam: #c9a36b; --line: #cdd6f4; --hair: #f4a93c; --skirt: #c8a6f7;
+  }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; height: 100%;
@@ -66,6 +82,13 @@
   .head { stroke: var(--line); stroke-width: 4; fill: none; }
   .hair { stroke: var(--hair); stroke-width: 6; stroke-linecap: round; fill: none; }
   .dress { stroke: var(--skirt); stroke-width: 4; fill: rgba(255,143,200,0.30); stroke-linejoin: round; }
+
+
+  .man-body { stroke: var(--line); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .man-head { stroke: var(--line); stroke-width: 4; fill: none; }
+  .man-bow  { fill: var(--accent); stroke: none; }
+  .man-belt { fill: var(--beam);   stroke: none; }
+  .man-hat  { fill: var(--line);   stroke: none; }
 
   .status { margin-top: 8px; font-size: 16px; min-height: 24px; text-align: center; }
   .status.win { color: var(--good); font-weight: 700; }
@@ -164,6 +187,22 @@
     -webkit-tap-highlight-color: transparent;
   }
   .info-btn:hover { border-color: var(--accent); }
+  .theme-btn {
+    position: absolute; top: 24px; right: 64px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--panel); border: 1px solid #6a4675;
+    color: var(--accent); font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .theme-btn:hover { border-color: var(--accent); }
+  .char-btn {
+    background: var(--panel); border: 1px solid #6a4675; border-radius: 8px;
+    color: var(--accent); font-size: 13px; font-weight: 700;
+    padding: 6px 10px; cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  }
+  .char-btn:hover { border-color: var(--accent); }
 
   /* Modal overlay */
   .modal-overlay {
@@ -205,6 +244,7 @@
 </style>
 </head>
 <body>
+<button class="theme-btn" id="themeBtn" title="Change background">🎨</button>
 <button class="info-btn" id="infoBtn" title="How to play">?</button>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -258,8 +298,8 @@
 
 <div class="wrap">
   <header>
-    <h1>Hang<span class="swing">Her</span></h1>
-    <p class="sub">Guess the secret word before the figure is complete. Nine wrong guesses and she's hanged.</p>
+    <h1>Hang<span class="swing" id="titleChar">Her</span></h1>
+    <p class="sub" id="subtitle">Guess the secret word before the figure is complete. Nine wrong guesses and she's hanged.</p>
   </header>
 
   <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
@@ -277,7 +317,8 @@
       </div>
     </div>
     <div class="picks" style="display:flex;align-items:center;flex-wrap:wrap;">
-      <label for="cat" style="color:var(--muted);font-size:14px;margin-right:6px;">Category</label>
+      <button class="char-btn" id="charToggle">👨 HangMan</button>
+      <label for="cat" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Category</label>
       <select id="cat"></select>
       <label for="mode" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Mode</label>
       <select id="mode">
@@ -303,23 +344,37 @@
 
   <div class="game">
     <div class="stage">
-      <svg viewBox="0 0 200 220" aria-label="HangHer gallows">
-        <!-- Gallows (always visible) -->
-        <line class="gallows" x1="20"  y1="210" x2="120" y2="210" />  <!-- base -->
-        <line class="gallows" x1="50"  y1="210" x2="50"  y2="20"  />  <!-- post -->
-        <line class="gallows" x1="48"  y1="20"  x2="135" y2="20"  />  <!-- top beam -->
-        <line class="gallows" x1="135" y1="20"  x2="135" y2="42"  />  <!-- rope -->
-
-        <!-- Body parts, added in order on each wrong guess -->
-        <circle class="head part" id="p1" cx="135" cy="58" r="16" />                       <!-- 1 Head -->
-        <path   class="hair part" id="p2" d="M122 48 Q103 54 109 76" />                     <!-- 2 Left pigtail -->
-        <path   class="hair part" id="p3" d="M148 48 Q167 54 161 76" />                     <!-- 3 Right pigtail -->
-        <line   class="body part" id="p4" x1="135" y1="74"  x2="135" y2="120" />            <!-- 4 Body -->
-        <line   class="body part" id="p5" x1="135" y1="86"  x2="112" y2="112" />            <!-- 5 Left arm -->
-        <line   class="body part" id="p6" x1="135" y1="86"  x2="158" y2="112" />            <!-- 6 Right arm -->
-        <polygon class="dress part" id="p7" points="135,114 110,160 160,160" />             <!-- 7 Skirt -->
-        <line   class="body part" id="p8" x1="126" y1="160" x2="119" y2="188" />            <!-- 8 Left leg -->
-        <line   class="body part" id="p9" x1="144" y1="160" x2="151" y2="188" />            <!-- 9 Right leg -->
+      <!-- HangHer figure -->
+      <svg id="svgHer" viewBox="0 0 200 220" aria-label="HangHer gallows">
+        <line class="gallows" x1="20"  y1="210" x2="120" y2="210" />
+        <line class="gallows" x1="50"  y1="210" x2="50"  y2="20"  />
+        <line class="gallows" x1="48"  y1="20"  x2="135" y2="20"  />
+        <line class="gallows" x1="135" y1="20"  x2="135" y2="42"  />
+        <circle class="head part" id="p1" cx="135" cy="58" r="16" />
+        <path   class="hair part" id="p2" d="M122 48 Q103 54 109 76" />
+        <path   class="hair part" id="p3" d="M148 48 Q167 54 161 76" />
+        <line   class="body part" id="p4" x1="135" y1="74"  x2="135" y2="120" />
+        <line   class="body part" id="p5" x1="135" y1="86"  x2="112" y2="112" />
+        <line   class="body part" id="p6" x1="135" y1="86"  x2="158" y2="112" />
+        <polygon class="dress part" id="p7" points="135,114 110,160 160,160" />
+        <line   class="body part" id="p8" x1="126" y1="160" x2="119" y2="188" />
+        <line   class="body part" id="p9" x1="144" y1="160" x2="151" y2="188" />
+      </svg>
+      <!-- HangMan figure -->
+      <svg id="svgMan" viewBox="0 0 200 220" aria-label="HangMan gallows" style="display:none">
+        <line class="gallows" x1="20"  y1="210" x2="120" y2="210" />
+        <line class="gallows" x1="50"  y1="210" x2="50"  y2="20"  />
+        <line class="gallows" x1="48"  y1="20"  x2="135" y2="20"  />
+        <line class="gallows" x1="135" y1="20"  x2="135" y2="42"  />
+        <circle class="man-head part" id="pm1" cx="135" cy="58" r="16" />
+        <line   class="man-body part" id="pm2" x1="135" y1="74"  x2="135" y2="132" />
+        <line   class="man-body part" id="pm3" x1="135" y1="90"  x2="110" y2="116" />
+        <line   class="man-body part" id="pm4" x1="135" y1="90"  x2="160" y2="116" />
+        <line   class="man-body part" id="pm5" x1="135" y1="132" x2="118" y2="190" />
+        <line   class="man-body part" id="pm6" x1="135" y1="132" x2="152" y2="190" />
+        <path   class="man-bow  part" id="pm7" d="M127,74 L135,80 L127,86 Z M143,74 L135,80 L143,86 Z" />
+        <rect   class="man-belt part" id="pm8" x="119" y="110" width="32" height="7" rx="2" />
+        <path   class="man-hat  part" id="pm9" d="M113,44 L157,44 L157,41 L149,41 L149,27 L121,27 L121,41 L113,41 Z" />
       </svg>
       <div class="status" id="status">Pick a letter to begin.</div>
     </div>
@@ -338,7 +393,7 @@
     </div>
   </div>
 
-  <footer>HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)</footer>
+  <footer id="footer">HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)</footer>
 </div>
 
 <script>
@@ -482,7 +537,10 @@ async function newGame() {
   secret = "";
   setDefinition(null);
   wordWrap.classList.remove("def-open");
-  for (let i = 1; i <= NUM_PARTS; i++) el("p" + i).classList.remove("show");
+  for (let i = 1; i <= NUM_PARTS; i++) {
+    el("p" + i)?.classList.remove("show");
+    el("pm" + i)?.classList.remove("show");
+  }
   renderWrong();
   updateLeft();
   buildKeyboard();
@@ -574,7 +632,7 @@ function guess(letter) {
     if (btn) btn.classList.add("incorrect");
     wrong.push(letter);
     // Reveal the next piece, in standard order
-    el("p" + wrong.length).classList.add("show");
+    el((charMode === "her" ? "p" : "pm") + wrong.length).classList.add("show");
     renderWrong();
     updateLeft();
     checkLose();
@@ -625,6 +683,36 @@ document.addEventListener("keydown", (e) => {
   const k = e.key.toUpperCase();
   if (k.length === 1 && k >= "A" && k <= "Z") guess(k);
   if (e.key === "Enter") newGame();
+});
+
+// Character mode
+let charMode = "her";
+const THEMES = ["purple", "navy", "forest", "midnight"];
+let themeIdx = 0;
+
+el("charToggle").addEventListener("click", () => {
+  charMode = charMode === "her" ? "man" : "her";
+  const isHer = charMode === "her";
+  el("svgHer").style.display = isHer ? "" : "none";
+  el("svgMan").style.display = isHer ? "none" : "";
+  el("titleChar").textContent = isHer ? "Her" : "Man";
+  el("subtitle").textContent = isHer
+    ? "Guess the secret word before the figure is complete. Nine wrong guesses and she's hanged."
+    : "Guess the secret word before the figure is complete. Nine wrong guesses and he's hanged.";
+  el("footer").textContent = isHer
+    ? "HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)"
+    : "HangMan • Head → Body → Arms → Legs → Bow Tie → Belt → Hat (9 pieces)";
+  el("charToggle").textContent = isHer ? "👨 HangMan" : "👩 HangHer";
+  // Re-render already-revealed parts on the new figure
+  for (let i = 1; i <= wrong.length; i++) {
+    el((isHer ? "p" : "pm") + i)?.classList.add("show");
+  }
+});
+
+el("themeBtn").addEventListener("click", () => {
+  themeIdx = (themeIdx + 1) % THEMES.length;
+  const t = THEMES[themeIdx];
+  document.documentElement.setAttribute("data-theme", t === "purple" ? "" : t);
 });
 
 // Audio
