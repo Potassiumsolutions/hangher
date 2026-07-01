@@ -197,10 +197,13 @@
   }
   .theme-btn:hover { border-color: var(--accent); }
   .char-btn {
-    background: var(--panel); border: 1px solid #6a4675; border-radius: 8px;
-    color: var(--accent); font-size: 13px; font-weight: 700;
-    padding: 6px 10px; cursor: pointer; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent; white-space: nowrap;
+    position: absolute; top: 24px; right: 110px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--panel); border: 1px solid #6a4675;
+    color: var(--accent); font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    padding: 0;
   }
   .char-btn:hover { border-color: var(--accent); }
 
@@ -244,6 +247,7 @@
 </style>
 </head>
 <body>
+<button class="char-btn" id="charToggle" title="Switch to HangMan">♂</button>
 <button class="theme-btn" id="themeBtn" title="Change background">🎨</button>
 <button class="info-btn" id="infoBtn" title="How to play">?</button>
 
@@ -317,8 +321,7 @@
       </div>
     </div>
     <div class="picks" style="display:flex;align-items:center;flex-wrap:wrap;">
-      <button class="char-btn" id="charToggle">👨 HangMan</button>
-      <label for="cat" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Category</label>
+      <label for="cat" style="color:var(--muted);font-size:14px;margin-right:6px;">Category</label>
       <select id="cat"></select>
       <label for="mode" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Mode</label>
       <select id="mode">
@@ -702,7 +705,8 @@ el("charToggle").addEventListener("click", () => {
   el("footer").textContent = isHer
     ? "HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)"
     : "HangMan • Head → Body → Arms → Legs → Bow Tie → Belt → Hat (9 pieces)";
-  el("charToggle").textContent = isHer ? "👨 HangMan" : "👩 HangHer";
+  el("charToggle").textContent = isHer ? "♂" : "♀";
+  el("charToggle").title = isHer ? "Switch to HangMan" : "Switch to HangHer";
   // Re-render already-revealed parts on the new figure
   for (let i = 1; i <= wrong.length; i++) {
     el((isHer ? "p" : "pm") + i)?.classList.add("show");
