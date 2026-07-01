@@ -59,6 +59,9 @@
   }
   .stats { display: flex; gap: 18px; font-size: 14px; color: var(--muted); }
   .stats b { color: var(--ink); font-size: 16px; }
+  .picks { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .picks-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .pick-lbl { color: var(--muted); font-size: 14px; white-space: nowrap; }
   select, button {
     font: inherit; color: var(--ink); background: var(--panel);
     border: 1px solid #6a4675; border-radius: 8px;
@@ -216,36 +219,46 @@
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 22px; }
 
-  /* Info button */
-  .info-btn {
+  /* Settings panel helpers */
+  .sett-char-btn {
+    flex: 1; padding: 8px 12px; border-radius: 8px; font: inherit;
+    background: var(--panel); border: 1px solid #6a4675; color: var(--muted);
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+  .sett-char-btn.active { background: var(--accent); color: #3a0c28; border-color: var(--accent); font-weight: 700; }
+  .sett-char-btn:hover:not(.active) { border-color: var(--accent); }
+  .sett-theme-btn {
+    width: 36px; height: 36px; border-radius: 8px; border: 3px solid transparent;
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; flex-shrink: 0;
+  }
+  .sett-theme-btn.active { border-color: var(--accent); }
+  .sett-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .win-log { max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.25); border-radius: 8px; padding: 6px 8px; }
+  .log-entry {
+    font-size: 12px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-win  { color: var(--good); font-weight: 700; }
+  .log-loss { color: var(--bad);  font-weight: 700; }
+  .log-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 14px 0; }
+  .sett-about-btn {
+    width: 100%; padding: 10px; font: inherit; border-radius: 8px;
+    background: var(--panel); border: 1px solid #6a4675; color: var(--ink);
+    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .sett-about-btn:hover { border-color: var(--accent); }
+  .settings-btn {
     position: absolute; top: 24px; right: 18px;
     width: 36px; height: 36px; border-radius: 50%;
     background: var(--panel); border: 1px solid #6a4675;
-    color: var(--accent); font-size: 18px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .info-btn:hover { border-color: var(--accent); }
-  .theme-btn {
-    position: absolute; top: 24px; right: 64px;
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--panel); border: 1px solid #6a4675;
-    color: var(--accent); font-size: 16px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-  }
-  .theme-btn:hover { border-color: var(--accent); }
-  .char-btn {
-    position: absolute; top: 24px; right: 110px;
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--panel); border: 1px solid #6a4675;
-    color: var(--accent); font-size: 18px;
+    color: var(--accent); font-size: 20px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     padding: 0;
   }
-  .char-btn:hover { border-color: var(--accent); }
+  .settings-btn:hover { border-color: var(--accent); }
 
   /* Modal overlay */
   .modal-overlay {
@@ -287,9 +300,61 @@
 </style>
 </head>
 <body>
-<button class="char-btn" id="charToggle" title="Switch to HangMan">♂</button>
-<button class="theme-btn" id="themeBtn" title="Change background">🎨</button>
-<button class="info-btn" id="infoBtn" title="How to play">?</button>
+<button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
+
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <button class="modal-close" id="settingsClose">✕</button>
+    <h2>Settings</h2>
+
+    <div class="info-section">
+      <div class="info-label">Character</div>
+      <div class="sett-row">
+        <button class="sett-char-btn active" id="settHer">👩 HangHer</button>
+        <button class="sett-char-btn" id="settMan">👨 HangMan</button>
+      </div>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Background Theme</div>
+      <div class="sett-row">
+        <button class="sett-theme-btn active" data-theme="" style="background:#2a1b30;" title="Purple"></button>
+        <button class="sett-theme-btn" data-theme="navy" style="background:#091628;" title="Navy"></button>
+        <button class="sett-theme-btn" data-theme="forest" style="background:#0c1e10;" title="Forest"></button>
+        <button class="sett-theme-btn" data-theme="midnight" style="background:#090910;" title="Midnight"></button>
+        <span class="pick-lbl" id="themeLabel">Purple</span>
+      </div>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Sound</div>
+      <div class="sett-row">
+        <button class="mute-btn" id="muteBtn" title="Toggle music">🔊</button>
+        <input type="range" class="vol" id="volSlider" min="0" max="1" step="0.05" value="0.4">
+      </div>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="info-label" style="margin-bottom:0;">Win Log</div>
+        <button id="clearLog" style="font:inherit;font-size:12px;padding:4px 10px;border-radius:6px;background:var(--panel);border:1px solid #6a4675;color:var(--muted);cursor:pointer;touch-action:manipulation;">Clear</button>
+      </div>
+      <div class="win-log" id="winLog"><div class="log-empty">No games logged yet.</div></div>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <button class="sett-about-btn" id="settAbout">ⓘ How to Play</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -349,44 +414,42 @@
   <audio id="bgMusic" src="music.mp3" loop preload="auto"></audio>
 
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
-      <div class="stats">
-        <div>Wins: <b id="wins">0</b></div>
-        <div>Losses: <b id="losses">0</b></div>
-        <div>Misses left: <b id="left">9</b></div>
-      </div>
-      <div class="audio-bar">
-        <button class="mute-btn" id="muteBtn" title="Toggle music">🔊</button>
-        <input type="range" class="vol" id="volSlider" min="0" max="1" step="0.05" value="0.4">
-      </div>
+    <div class="stats">
+      <div>Wins: <b id="wins">0</b></div>
+      <div>Losses: <b id="losses">0</b></div>
+      <div>Misses left: <b id="left">9</b></div>
     </div>
-    <div class="picks" style="display:flex;align-items:center;flex-wrap:wrap;">
-      <label for="cat" style="color:var(--muted);font-size:14px;margin-right:6px;">Category</label>
-      <select id="cat"></select>
-      <label for="mode" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Mode</label>
-      <select id="mode">
-        <option value="easy">Easy</option>
-        <option value="hard">Hard</option>
-      </select>
-      <label for="len" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Length</label>
-      <select id="len">
-        <option value="0">Any</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10</option>
-        <option value="11">11</option>
-        <option value="12">12</option>
-      </select>
-      <label style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Speed</label>
-      <button class="speed-btn" id="speedToggle">⚡ Off</button>
-      <div class="speed-dur" id="speedDur" style="display:none;">
-        <input type="range" class="spd" id="speedSlider" min="5" max="20" value="5">
-        <span id="speedVal" style="color:var(--muted);font-size:13px;min-width:24px;">5s</span>
+    <div class="picks">
+      <div class="picks-row">
+        <label for="cat" class="pick-lbl">Category</label>
+        <select id="cat"></select>
+        <label for="mode" class="pick-lbl">Mode</label>
+        <select id="mode">
+          <option value="easy">Easy</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="picks-row">
+        <label for="len" class="pick-lbl">Length</label>
+        <select id="len">
+          <option value="0">Any</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+        </select>
+        <label class="pick-lbl">Speed</label>
+        <button class="speed-btn" id="speedToggle">⚡ Off</button>
+        <div class="speed-dur" id="speedDur" style="display:none;">
+          <input type="range" class="spd" id="speedSlider" min="5" max="20" value="5">
+          <span id="speedVal" style="color:var(--muted);font-size:13px;min-width:24px;">5s</span>
+        </div>
       </div>
     </div>
   </div>
@@ -709,6 +772,7 @@ function checkWin() {
     stopTimer();
     wins++;
     winsEl.textContent = wins;
+    logGame("Win");
     statusEl.className = "status win";
     statusEl.textContent = "You saved " + (charMode === "her" ? "her" : "him") + "! The word was " + secret + ".";
     lockKeyboard();
@@ -721,6 +785,7 @@ function checkLose() {
     stopTimer();
     losses++;
     lossesEl.textContent = losses;
+    logGame("Loss");
     statusEl.className = "status lose";
     statusEl.textContent = "Hanged! The word was " + secret + ".";
     renderWord(true);
@@ -738,6 +803,7 @@ function giveUp() {
   stopTimer();
   losses++;
   lossesEl.textContent = losses;
+  logGame("Gave Up");
   statusEl.className = "status lose";
   statusEl.textContent = "Gave up. The word was " + secret + ".";
   renderWord(true);
@@ -783,6 +849,7 @@ function startTimer() {
         over = true;
         losses++;
         lossesEl.textContent = losses;
+        logGame("Time's Up");
         statusEl.className = "status lose";
         statusEl.textContent = "Time's up! The word was " + secret + ".";
         renderWord(true);
@@ -816,12 +883,9 @@ document.addEventListener("keydown", (e) => {
 
 // Character mode
 let charMode = "her";
-const THEMES = ["purple", "navy", "forest", "midnight"];
-let themeIdx = 0;
-
-el("charToggle").addEventListener("click", () => {
-  charMode = charMode === "her" ? "man" : "her";
-  const isHer = charMode === "her";
+function applyChar(mode) {
+  charMode = mode;
+  const isHer = mode === "her";
   el("svgHer").style.display = isHer ? "" : "none";
   el("svgMan").style.display = isHer ? "none" : "";
   el("titleChar").textContent = isHer ? "Her" : "Man";
@@ -831,19 +895,21 @@ el("charToggle").addEventListener("click", () => {
   el("footer").textContent = isHer
     ? "HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)"
     : "HangMan • Head → Body → Arms → Legs → Bow Tie → Belt → Hat (9 pieces)";
-  el("charToggle").textContent = isHer ? "♂" : "♀";
-  el("charToggle").title = isHer ? "Switch to HangMan" : "Switch to HangHer";
-  // Re-render already-revealed parts on the new figure
-  for (let i = 1; i <= wrong.length; i++) {
-    el((isHer ? "p" : "pm") + i)?.classList.add("show");
-  }
-});
+  el("settHer").classList.toggle("active", isHer);
+  el("settMan").classList.toggle("active", !isHer);
+  for (let i = 1; i <= wrong.length; i++) el((isHer ? "p" : "pm") + i)?.classList.add("show");
+}
 
-el("themeBtn").addEventListener("click", () => {
-  themeIdx = (themeIdx + 1) % THEMES.length;
-  const t = THEMES[themeIdx];
-  document.documentElement.setAttribute("data-theme", t === "purple" ? "" : t);
-});
+const THEME_NAMES = { "": "Purple", "navy": "Navy", "forest": "Forest", "midnight": "Midnight" };
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  document.querySelectorAll(".sett-theme-btn").forEach(b => b.classList.toggle("active", b.dataset.theme === t));
+  const lbl = el("themeLabel"); if (lbl) lbl.textContent = THEME_NAMES[t] || "Purple";
+}
+
+el("settHer").addEventListener("click", () => applyChar("her"));
+el("settMan").addEventListener("click", () => applyChar("man"));
+document.querySelectorAll(".sett-theme-btn").forEach(b => b.addEventListener("click", () => applyTheme(b.dataset.theme)));
 
 // Audio — uses Web Audio API GainNode so volume works on iOS
 const bgMusic = el("bgMusic");
@@ -907,10 +973,46 @@ catSel.addEventListener("change", newGame);
 modeSel.addEventListener("change", newGame);
 lenSel.addEventListener("change", newGame);
 
+// Settings modal
+const settingsOverlay = el("settingsOverlay");
+el("settingsBtn").addEventListener("click", () => { renderLog(); settingsOverlay.classList.add("open"); });
+el("settingsClose").addEventListener("click", () => settingsOverlay.classList.remove("open"));
+settingsOverlay.addEventListener("click", e => { if (e.target === settingsOverlay) settingsOverlay.classList.remove("open"); });
+
+// Info modal
 const overlay = el("modalOverlay");
-el("infoBtn").addEventListener("click", () => overlay.classList.add("open"));
+el("settAbout").addEventListener("click", () => { settingsOverlay.classList.remove("open"); overlay.classList.add("open"); });
 el("modalClose").addEventListener("click", () => overlay.classList.remove("open"));
 overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+
+// Win log
+function logGame(result) {
+  const log = JSON.parse(localStorage.getItem("hangherLog") || "[]");
+  log.unshift({ ts: Date.now(), result, word: secret,
+    category: catSel.value === ONLINE ? "Online" : catSel.value,
+    mode: modeSel.value === "easy" ? "Easy" : "Hard",
+    char: charMode === "her" ? "HangHer" : "HangMan",
+    speed: speedMode ? speedSecs + "s" : "Off" });
+  localStorage.setItem("hangherLog", JSON.stringify(log));
+}
+
+function renderLog() {
+  const logEl = el("winLog");
+  const log = JSON.parse(localStorage.getItem("hangherLog") || "[]");
+  if (!log.length) { logEl.innerHTML = '<div class="log-empty">No games logged yet.</div>'; return; }
+  logEl.innerHTML = log.map(e => {
+    const w = e.result === "Win";
+    const d = new Date(e.ts);
+    const dt = d.toLocaleDateString([],{month:"short",day:"numeric"}) + " " + d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    return '<div class="log-entry"><div>' +
+      '<span class="' + (w?"log-win":"log-loss") + '">' + (w?"✓":"✗") + " " + e.result + '</span>' +
+      '<span style="color:var(--ink);font-weight:700;margin-left:6px;">' + e.word + '</span>' +
+      '<div style="color:var(--muted);font-size:11px;margin-top:2px;">' + e.category + ' · ' + e.mode + ' · ' + e.char + (e.speed!=="Off"?" · ⚡"+e.speed:"") + '</div>' +
+      '</div><div style="color:var(--muted);font-size:11px;white-space:nowrap;">' + dt + '</div></div>';
+  }).join("");
+}
+
+el("clearLog").addEventListener("click", () => { localStorage.removeItem("hangherLog"); renderLog(); });
 
 newGame();
 </script>
