@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>HangHer</title>
+<style>
+  :root {
+    --bg: #2a1b30;
+    --bg2: #3d2440;
+    --panel: #4a2f55;
+    --ink: #fbeef6;
+    --muted: #c79fbf;
+    --accent: #ff8fc8;
+    --good: #5bd6a6;
+    --bad: #ff7676;
+    --beam: #c9a36b;
+    --line: #fbeef6;
+    --hair: #f4a93c;
+    --skirt: #ff8fc8;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: radial-gradient(1200px 800px at 50% -10%, var(--bg2), var(--bg));
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  }
+  .wrap {
+    max-width: 880px; margin: 0 auto; padding: 24px 18px 48px;
+  }
+  header { text-align: center; margin-bottom: 8px; }
+  h1 {
+    margin: 0; font-size: 40px; letter-spacing: 6px;
+    text-transform: uppercase; font-weight: 800;
+  }
+  h1 .swing { color: var(--accent); }
+  .sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap; margin: 18px 0 10px;
+  }
+  .stats { display: flex; gap: 18px; font-size: 14px; color: var(--muted); }
+  .stats b { color: var(--ink); font-size: 16px; }
+  select, button {
+    font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid #6a4675; border-radius: 8px;
+    padding: 8px 12px; cursor: pointer;
+  }
+  select:hover, button:hover { border-color: var(--accent); }
+
+  .game {
+    display: grid; grid-template-columns: 320px 1fr; gap: 22px; align-items: start;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 22px; margin-top: 8px;
+  }
+  @media (max-width: 720px) { .game { grid-template-columns: 1fr; } }
+
+  .stage { display: flex; flex-direction: column; align-items: center; }
+  svg { width: 280px; height: 300px; }
+  .part { opacity: 0; transition: opacity .25s ease; }
+  .part.show { opacity: 1; }
+  .gallows { stroke: var(--beam); stroke-width: 8; stroke-linecap: round; fill: none; }
+  .body { stroke: var(--line); stroke-width: 4; stroke-linecap: round; fill: none; }
+  .head { stroke: var(--line); stroke-width: 4; fill: none; }
+  .hair { stroke: var(--hair); stroke-width: 6; stroke-linecap: round; fill: none; }
+  .dress { stroke: var(--skirt); stroke-width: 4; fill: rgba(255,143,200,0.30); stroke-linejoin: round; }
+
+  .status { margin-top: 8px; font-size: 16px; min-height: 24px; text-align: center; }
+  .status.win { color: var(--good); font-weight: 700; }
+  .status.lose { color: var(--bad); font-weight: 700; }
+
+  .right { display: flex; flex-direction: column; gap: 18px; }
+
+  .word {
+    display: flex; flex-wrap: wrap; gap: 10px 14px; justify-content: center;
+    font-size: 34px; font-weight: 700; letter-spacing: 2px; min-height: 48px;
+  }
+  .word .gap { width: 18px; }
+  .word .slot {
+    width: 30px; text-align: center; border-bottom: 4px solid var(--muted);
+    line-height: 1.1;
+  }
+  .word .slot.filled { border-bottom-color: var(--accent); }
+  .word .slot.missed { color: var(--bad); }
+
+  .wrong {
+    text-align: center; color: var(--muted); font-size: 14px; min-height: 20px;
+  }
+  .wrong b { color: var(--bad); letter-spacing: 3px; font-size: 18px; }
+
+  .keyboard {
+    display: grid; grid-template-columns: repeat(9, 1fr); gap: 8px;
+  }
+  @media (max-width: 720px) { .keyboard { grid-template-columns: repeat(7, 1fr); } }
+  .key {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; height: 44px;
+    font-size: 18px; font-weight: 700; border-radius: 10px;
+    background: var(--panel); border: 1px solid #6a4675; cursor: pointer;
+    user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: transform .05s ease, background .15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .key:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+  .key:disabled { cursor: default; opacity: .55; }
+  .key.correct { background: var(--good); color: #0c2b20; border-color: var(--good); }
+  .key.incorrect { background: var(--bad); color: #3a0c0c; border-color: var(--bad); }
+
+  .controls { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
+  .controls button.primary { background: var(--accent); color: #3a0c28; border-color: var(--accent); font-weight: 700; }
+
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hang<span class="swing">Her</span></h1>
+    <p class="sub">Guess the secret word before the figure is complete. Nine wrong guesses and she's hanged.</p>
+  </header>
+
+  <div class="topbar">
+    <div class="stats">
+      <div>Wins: <b id="wins">0</b></div>
+      <div>Losses: <b id="losses">0</b></div>
+      <div>Misses left: <b id="left">9</b></div>
+    </div>
+    <div class="picks" style="display:flex;align-items:center;flex-wrap:wrap;">
+      <label for="cat" style="color:var(--muted);font-size:14px;margin-right:6px;">Category</label>
+      <select id="cat"></select>
+      <label for="len" style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Length</label>
+      <select id="len">
+        <option value="0">Any</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+        <option value="11">11</option>
+        <option value="12">12</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="game">
+    <div class="stage">
+      <svg viewBox="0 0 200 220" aria-label="HangHer gallows">
+        <!-- Gallows (always visible) -->
+        <line class="gallows" x1="20"  y1="210" x2="120" y2="210" />  <!-- base -->
+        <line class="gallows" x1="50"  y1="210" x2="50"  y2="20"  />  <!-- post -->
+        <line class="gallows" x1="48"  y1="20"  x2="135" y2="20"  />  <!-- top beam -->
+        <line class="gallows" x1="135" y1="20"  x2="135" y2="42"  />  <!-- rope -->
+
+        <!-- Body parts, added in order on each wrong guess -->
+        <circle class="head part" id="p1" cx="135" cy="58" r="16" />                       <!-- 1 Head -->
+        <path   class="hair part" id="p2" d="M122 48 Q103 54 109 76" />                     <!-- 2 Left pigtail -->
+        <path   class="hair part" id="p3" d="M148 48 Q167 54 161 76" />                     <!-- 3 Right pigtail -->
+        <line   class="body part" id="p4" x1="135" y1="74"  x2="135" y2="120" />            <!-- 4 Body -->
+        <line   class="body part" id="p5" x1="135" y1="86"  x2="112" y2="112" />            <!-- 5 Left arm -->
+        <line   class="body part" id="p6" x1="135" y1="86"  x2="158" y2="112" />            <!-- 6 Right arm -->
+        <polygon class="dress part" id="p7" points="135,114 110,160 160,160" />             <!-- 7 Skirt -->
+        <line   class="body part" id="p8" x1="126" y1="160" x2="119" y2="188" />            <!-- 8 Left leg -->
+        <line   class="body part" id="p9" x1="144" y1="160" x2="151" y2="188" />            <!-- 9 Right leg -->
+      </svg>
+      <div class="status" id="status">Pick a letter to begin.</div>
+    </div>
+
+    <div class="right">
+      <div class="word" id="word"></div>
+      <div class="wrong" id="wrong">Wrong guesses: <b id="wrongList">—</b></div>
+      <div class="keyboard" id="keyboard"></div>
+      <div class="controls">
+        <button class="primary" id="newGame">New Word</button>
+        <button id="reveal" title="Give up this round">Give Up</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>HangHer • Head → Pigtails → Body → Arms → Skirt → Legs (9 pieces)</footer>
+</div>
+
+<script>
+const WORDS = {
+  "Animals": ["elephant","giraffe","kangaroo","dolphin","penguin","crocodile","butterfly","squirrel","rhinoceros","octopus","leopard","hedgehog","flamingo","chimpanzee","porcupine","alligator","antelope","armadillo","baboon","badger","barracuda","beaver","buffalo","camel","chameleon","cheetah","chinchilla","cobra","cougar","coyote","dingo","donkey","dragonfly","eagle","ferret","falcon","gazelle","gerbil","gibbon","goldfish","gorilla","grasshopper","hamster","hippopotamus","hyena","iguana","jaguar","jellyfish","koala","ladybug","lemur","lobster","lynx","macaw","mammoth","manatee","meerkat","mongoose","mosquito","narwhal","newt","ocelot","ostrich","otter","panther","parrot","peacock","pelican","platypus","puffin","python","rabbit","raccoon","reindeer","salamander","scorpion","seahorse","seal","shark","sloth","sparrow","starfish","stingray","stork","swordfish","tarantula","termite","toucan","turtle","vulture","walrus","weasel","wolverine","wombat","woodpecker","zebra","mole","panda","lizard","mackerel","ant","bat","bee","cat","cod","cow","dog","eel","elk","emu","fox","hen","owl","pig","ram","rat","yak","crab","deer","dove","duck","fawn","fish","frog","goat","hare","hawk","ibis","lamb","lion","mule","pony","puma","swan","toad","tuna","wasp","wolf","bison","civet","crane","egret","finch","gecko","goose","heron","horse","llama","moose","mouse","quail","raven","rhino","robin","skunk","snail","snake","squid","tapir","viper"],
+  "Countries": ["canada","brazil","australia","portugal","thailand","morocco","argentina","switzerland","indonesia","ethiopia","denmark","vietnam","mongolia","colombia","norway","afghanistan","albania","algeria","angola","armenia","austria","bahamas","bangladesh","belgium","bolivia","botswana","bulgaria","cambodia","cameroon","chile","china","croatia","cuba","cyprus","ecuador","egypt","estonia","finland","france","georgia","germany","ghana","greece","guatemala","honduras","hungary","iceland","india","iran","iraq","ireland","israel","italy","jamaica","japan","jordan","kazakhstan","kenya","kuwait","latvia","lebanon","liberia","libya","lithuania","luxembourg","madagascar","malaysia","mexico","nepal","netherlands","nicaragua","nigeria","pakistan","panama","paraguay","peru","philippines","poland","romania","russia","rwanda","senegal","serbia","singapore","slovakia","slovenia","somalia","spain","sweden","tanzania","tunisia","turkey","uganda","ukraine","uruguay","uzbekistan","venezuela","yemen","zambia","zimbabwe","chad","fiji","laos","mali","oman","togo","qatar","samoa","sudan","syria","niger","gabon","benin","haiti","brunei","bhutan","guyana","kosovo","malta","monaco","namibia","taiwan","belarus","moldova","montenegro","mozambique","myanmar","suriname","tajikistan","turkmenistan","bahrain","comoros","djibouti","dominica","grenada","lesotho","maldives","mauritius","palau","seychelles","vanuatu","andorra","eritrea","gambia","guinea","kyrgyzstan","malawi","mauritania"],
+  "Food & Drink": ["spaghetti","avocado","pineapple","chocolate","cinnamon","broccoli","sandwich","espresso","pancake","blueberry","cucumber","lasagna","mushroom","pretzel","smoothie","almond","apricot","artichoke","asparagus","bacon","bagel","banana","barbecue","biscuit","blackberry","bratwurst","burrito","cabbage","cantaloupe","cappuccino","caramel","carrot","cashew","cauliflower","cheddar","cheesecake","cherry","chickpea","chowder","cilantro","coconut","coleslaw","cornbread","croissant","cranberry","custard","doughnut","dumpling","eggplant","enchilada","fettuccine","grapefruit","guacamole","hamburger","hazelnut","honeydew","jalapeno","ketchup","lemonade","lentil","lettuce","lobster","macaroni","mango","marmalade","meatball","meringue","molasses","mozzarella","mustard","noodle","oatmeal","omelette","oregano","pancetta","parmesan","parsley","peanut","pepperoni","pistachio","popcorn","porridge","pudding","pumpkin","quesadilla","raspberry","ravioli","rhubarb","risotto","rosemary","sausage","spinach","strawberry","tangerine","tomato","tortilla","turmeric","vanilla","waffle","zucchini","pie","egg","jam","ham","tea","rye","fig","oat","nut","pea","yam","soup","milk","rice","bean","corn","kale","lime","mint","pear","plum","taco","tofu","wine","beef","brie","cake","chip","dill","kiwi","leek","naan","okra","salt","sage","soda","sushi","bread","candy","cocoa","curry","donut","gravy","honey","juice","lemon","mocha","nacho","olive","onion","pasta","pizza","salsa","scone","steak","sugar","syrup","toast","wafer","wheat","apple","berry","cream","fudge","grape","melon","peach","walnut","yogurt"],
+  "Science": ["molecule","gravity","electron","velocity","photosynthesis","telescope","magnetism","ecosystem","chromosome","asteroid","catalyst","nucleus","spectrum","friction","enzyme","acceleration","acid","alkaline","amplitude","antibody","atmosphere","atom","bacteria","biology","buoyancy","capacitor","carbon","cell","chemistry","circuit","combustion","comet","compound","condensation","conductor","cytoplasm","density","diffusion","dinosaur","electricity","element","energy","entropy","equilibrium","evolution","evaporation","fossil","frequency","fungus","galaxy","gene","genome","glucose","helium","hydrogen","inertia","insulator","ion","isotope","kinetic","laboratory","magnet","mammal","mass","membrane","metabolism","meteor","microscope","mineral","mitochondria","momentum","neuron","neutron","nitrogen","nucleotide","orbit","organism","oxygen","particle","pendulum","photon","planet","plasma","pressure","proton","radiation","reaction","resistor","satellite","solvent","species","supernova","temperature","thermometer","vaccine","vapor","viscosity","voltage","wavelength","vertebrate","arc","amp","gas","ice","ray","sun","watt","volt","ohm","star","mars","moon","beam","heat","lens","wave","axis","base","bond","fuel","germ","leaf","mold","moss","root","seed","stem","tide","vein","alloy","amber","basin","blood","brain","charge","color","crust","earth","field","flame","fluid","focus","force","larva","light","lunar","motor","nerve","ozone","polar","power","prism","pulse","quark","radar","robot","solar","sound","spore","steam","valve","virus","water","xenon","plant","optic"],
+  "Around the House": ["umbrella","television","refrigerator","blanket","cupboard","doorknob","staircase","mattress","chandelier","fireplace","cushion","wardrobe","faucet","drawer","ceiling","armchair","ashtray","basement","bathtub","bedroom","bookcase","bookshelf","broom","bucket","candle","carpet","closet","coaster","colander","corkscrew","couch","counter","curtain","cutlery","dishwasher","doormat","doorway","driveway","dustpan","duvet","freezer","kettle","furnace","garage","hallway","hammer","hanger","headboard","heater","kitchen","ladder","lamp","lampshade","laundry","mailbox","mantel","microwave","mirror","mixer","mop","napkin","nightstand","oven","pantry","picture","pillow","plunger","radiator","recliner","saucepan","scissors","settee","shelf","shower","sideboard","sink","sofa","spatula","sponge","stairwell","stool","stove","teapot","thermostat","toaster","toilet","toothbrush","towel","tumbler","vacuum","vase","ventilator","wallpaper","washer","window","windowsill","cabinet","dresser","doorbell","footstool","bed","cup","fan","jar","jug","mat","mug","pan","peg","pot","rug","tub","bin","key","bowl","comb","desk","dish","door","fork","hook","iron","lock","nail","rack","rake","wall","bath","bell","bulb","clock","crib","frame","glass","grill","knife","ladle","light","linen","plate","quilt","spoon","stair","tray","vent","blind","board","brush","chair","chest","clamp","decor","latch","plant","shade","sheet","stand","timer","valve","basket"]
+};
+
+// Normalize each list: lowercase, letters-only, dedupe (so length filtering is reliable)
+Object.keys(WORDS).forEach(k => {
+  WORDS[k] = [...new Set(WORDS[k].map(w => w.toLowerCase()).filter(w => /^[a-z]+$/.test(w)))];
+});
+const ONLINE = "🎲 Random (online)";
+const onlineCache = {};
+
+const MAX_MISSES = 9;
+const NUM_PARTS = 9;
+
+const el = (id) => document.getElementById(id);
+const catSel = el("cat");
+const lenSel = el("len");
+const wordEl = el("word");
+const kbEl = el("keyboard");
+const statusEl = el("status");
+const wrongListEl = el("wrongList");
+const leftEl = el("left");
+const winsEl = el("wins");
+const lossesEl = el("losses");
+
+let secret = "";
+let guessed = new Set();
+let wrong = [];
+let over = false;
+let wins = 0, losses = 0;
+
+// Build category dropdown (curated categories + an online random option)
+Object.keys(WORDS).forEach(c => {
+  const o = document.createElement("option");
+  o.value = c; o.textContent = c;
+  catSel.appendChild(o);
+});
+(function(){ const o = document.createElement("option"); o.value = ONLINE; o.textContent = ONLINE; catSel.appendChild(o); })();
+
+async function getWord() {
+  const len = parseInt(lenSel.value, 10) || 0;
+  if (catSel.value === ONLINE) return await getOnlineWord(len);
+  let list = WORDS[catSel.value] || [];
+  if (len) list = list.filter(w => w.length === len);
+  if (!list.length) return null;
+  return list[Math.floor(Math.random() * list.length)].toUpperCase();
+}
+
+async function getOnlineWord(len) {
+  const n = len || (4 + Math.floor(Math.random() * 5)); // random 4-8 when "Any"
+  const pattern = "?".repeat(n);
+  try {
+    if (!onlineCache[pattern]) {
+      const res = await fetch("https://api.datamuse.com/words?max=1000&sp=" + pattern);
+      const data = await res.json();
+      const re = new RegExp("^[a-z]{" + n + "}$");
+      onlineCache[pattern] = data.map(d => d.word).filter(w => re.test(w));
+    }
+    const pool = onlineCache[pattern];
+    if (!pool || !pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)].toUpperCase();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function newGame() {
+  guessed = new Set();
+  wrong = [];
+  over = false;
+  secret = "";
+  for (let i = 1; i <= NUM_PARTS; i++) el("p" + i).classList.remove("show");
+  renderWrong();
+  updateLeft();
+  buildKeyboard();
+  renderWord();
+  statusEl.className = "status";
+  statusEl.textContent = catSel.value === ONLINE ? "Fetching a word…" : "Pick a letter to begin.";
+
+  const w = await getWord();
+  if (!w) {
+    secret = "";
+    over = true;
+    renderWord();
+    lockKeyboard();
+    statusEl.className = "status lose";
+    statusEl.textContent = catSel.value === ONLINE
+      ? "Couldn't fetch a word — check your connection and press New Word."
+      : "No " + lenSel.value + "-letter words in " + catSel.value + ". Pick another length.";
+    return;
+  }
+  secret = w;
+  renderWord();
+  statusEl.className = "status";
+  statusEl.textContent = "Pick a letter to begin.";
+}
+
+function renderWord(revealAll = false) {
+  wordEl.innerHTML = "";
+  for (const ch of secret) {
+    if (ch === " ") {
+      const g = document.createElement("span");
+      g.className = "gap";
+      wordEl.appendChild(g);
+      continue;
+    }
+    const s = document.createElement("span");
+    s.className = "slot";
+    const shown = guessed.has(ch) || revealAll;
+    if (shown) {
+      s.textContent = ch;
+      s.classList.add("filled");
+      if (revealAll && !guessed.has(ch)) s.classList.add("missed");
+    } else {
+      s.innerHTML = "&nbsp;";
+    }
+    wordEl.appendChild(s);
+  }
+}
+
+function renderWrong() {
+  wrongListEl.textContent = wrong.length ? wrong.join(" ") : "—";
+}
+
+function updateLeft() {
+  leftEl.textContent = MAX_MISSES - wrong.length;
+}
+
+function buildKeyboard() {
+  kbEl.innerHTML = "";
+  for (let c = 65; c <= 90; c++) {
+    const letter = String.fromCharCode(c);
+    const b = document.createElement("button");
+    b.className = "key";
+    b.textContent = letter;
+    b.dataset.letter = letter;
+    b.addEventListener("click", () => guess(letter));
+    kbEl.appendChild(b);
+  }
+}
+
+function guess(letter) {
+  if (over || guessed.has(letter)) return;
+  if (!/[A-Z]/.test(letter)) return;
+  guessed.add(letter);
+
+  const btn = [...kbEl.children].find(b => b.dataset.letter === letter);
+  if (btn) btn.disabled = true;
+
+  if (secret.includes(letter)) {
+    if (btn) btn.classList.add("correct");
+    renderWord();
+    checkWin();
+  } else {
+    if (btn) btn.classList.add("incorrect");
+    wrong.push(letter);
+    // Reveal the next piece, in standard order
+    el("p" + wrong.length).classList.add("show");
+    renderWrong();
+    updateLeft();
+    checkLose();
+  }
+}
+
+function checkWin() {
+  const won = [...secret].every(ch => ch === " " || guessed.has(ch));
+  if (won) {
+    over = true;
+    wins++;
+    winsEl.textContent = wins;
+    statusEl.className = "status win";
+    statusEl.textContent = "You saved her! The word was " + secret + ".";
+    lockKeyboard();
+  }
+}
+
+function checkLose() {
+  if (wrong.length >= MAX_MISSES) {
+    over = true;
+    losses++;
+    lossesEl.textContent = losses;
+    statusEl.className = "status lose";
+    statusEl.textContent = "Hanged! The word was " + secret + ".";
+    renderWord(true);
+    lockKeyboard();
+  }
+}
+
+function lockKeyboard() {
+  [...kbEl.children].forEach(b => b.disabled = true);
+}
+
+function giveUp() {
+  if (over) return;
+  over = true;
+  losses++;
+  lossesEl.textContent = losses;
+  statusEl.className = "status lose";
+  statusEl.textContent = "Gave up. The word was " + secret + ".";
+  renderWord(true);
+  lockKeyboard();
+}
+
+// Keyboard support
+document.addEventListener("keydown", (e) => {
+  const k = e.key.toUpperCase();
+  if (k.length === 1 && k >= "A" && k <= "Z") guess(k);
+  if (e.key === "Enter") newGame();
+});
+
+el("newGame").addEventListener("click", newGame);
+el("reveal").addEventListener("click", giveUp);
+catSel.addEventListener("change", newGame);
+lenSel.addEventListener("change", newGame);
+
+newGame();
+</script>
+</body>
+</html>
