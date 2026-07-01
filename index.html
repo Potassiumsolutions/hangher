@@ -147,6 +147,46 @@
   .controls { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
   .controls button.primary { background: var(--accent); color: #3a0c28; border-color: var(--accent); font-weight: 700; }
 
+  /* Speed mode */
+  .speed-btn {
+    font: inherit; color: var(--ink); background: var(--panel);
+    border: 1px solid #6a4675; border-radius: 8px;
+    padding: 8px 12px; cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  }
+  .speed-btn.on { background: #7a3a00; border-color: #f4a93c; color: #f4a93c; }
+  .speed-btn:hover { border-color: var(--accent); }
+  .speed-dur {
+    display: flex; align-items: center; gap: 6px;
+  }
+  input[type=range].spd {
+    -webkit-appearance: none; appearance: none;
+    width: 80px; height: 4px; border-radius: 2px;
+    background: #6a4675; outline: none; cursor: pointer; border: none; padding: 0;
+  }
+  input[type=range].spd::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: #f4a93c; cursor: pointer;
+  }
+  input[type=range].spd::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #f4a93c; cursor: pointer; border: none;
+  }
+  .timer-wrap { display: none; }
+  .timer-wrap.active { display: block; }
+  .timer-bar-bg {
+    height: 10px; background: var(--panel); border-radius: 5px; overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%; width: 100%; border-radius: 5px;
+    background: var(--good); transition: width 0.25s linear, background 0.4s;
+  }
+  .timer-bar.warn   { background: #f4a93c; }
+  .timer-bar.danger { background: var(--bad); }
+  .timer-label {
+    text-align: center; font-size: 13px; color: var(--muted); margin-top: 3px;
+  }
+
   /* Audio controls */
   .audio-bar {
     display: flex; align-items: center; gap: 10px;
@@ -342,6 +382,12 @@
         <option value="11">11</option>
         <option value="12">12</option>
       </select>
+      <label style="color:var(--muted);font-size:14px;margin:0 6px 0 14px;">Speed</label>
+      <button class="speed-btn" id="speedToggle">⚡ Off</button>
+      <div class="speed-dur" id="speedDur" style="display:none;">
+        <input type="range" class="spd" id="speedSlider" min="5" max="20" value="5">
+        <span id="speedVal" style="color:var(--muted);font-size:13px;min-width:24px;">5s</span>
+      </div>
     </div>
   </div>
 
@@ -386,6 +432,10 @@
       <div class="word-wrap" id="wordWrap">
         <div class="word" id="word"></div>
         <div class="def-tip" id="defTip"></div>
+      </div>
+      <div class="timer-wrap" id="timerWrap">
+        <div class="timer-bar-bg"><div class="timer-bar" id="timerBar"></div></div>
+        <div class="timer-label" id="timerLabel"></div>
       </div>
       <div class="wrong" id="wrong">Wrong guesses: <b id="wrongList">—</b></div>
       <div class="keyboard" id="keyboard"></div>
@@ -545,6 +595,9 @@ async function newGame() {
   secret = "";
   setDefinition(null);
   wordWrap.classList.remove("def-open");
+  stopTimer();
+  timerWrap.classList.toggle("active", speedMode);
+  if (speedMode) { timeLeft = speedSecs; updateTimerDisplay(); }
   for (let i = 1; i <= NUM_PARTS; i++) {
     el("p" + i)?.classList.remove("show");
     el("pm" + i)?.classList.remove("show");
@@ -572,6 +625,7 @@ async function newGame() {
   renderWord();
   statusEl.className = "status";
   statusEl.textContent = "Pick a letter to begin.";
+  if (speedMode) startTimer();
   if (catSel.value === ONLINE) {
     fetchDefinition(w).then(setDefinition);
   } else {
@@ -632,6 +686,7 @@ function guess(letter) {
   const btn = [...kbEl.children].find(b => b.dataset.letter === letter);
   if (btn) btn.disabled = true;
 
+  if (speedMode) startTimer();
   if (secret.includes(letter)) {
     if (btn) btn.classList.add("correct");
     renderWord();
@@ -651,10 +706,11 @@ function checkWin() {
   const won = [...secret].every(ch => ch === " " || guessed.has(ch));
   if (won) {
     over = true;
+    stopTimer();
     wins++;
     winsEl.textContent = wins;
     statusEl.className = "status win";
-    statusEl.textContent = "You saved her! The word was " + secret + ".";
+    statusEl.textContent = "You saved " + (charMode === "her" ? "her" : "him") + "! The word was " + secret + ".";
     lockKeyboard();
   }
 }
@@ -662,6 +718,7 @@ function checkWin() {
 function checkLose() {
   if (wrong.length >= MAX_MISSES) {
     over = true;
+    stopTimer();
     losses++;
     lossesEl.textContent = losses;
     statusEl.className = "status lose";
@@ -678,6 +735,7 @@ function lockKeyboard() {
 function giveUp() {
   if (over) return;
   over = true;
+  stopTimer();
   losses++;
   lossesEl.textContent = losses;
   statusEl.className = "status lose";
@@ -685,6 +743,69 @@ function giveUp() {
   renderWord(true);
   lockKeyboard();
 }
+
+// Speed mode
+let speedMode = false;
+let speedSecs = 5;
+let timerTick = null;
+let timeLeft = 0;
+
+const timerWrap  = el("timerWrap");
+const timerBar   = el("timerBar");
+const timerLabel = el("timerLabel");
+const speedToggle = el("speedToggle");
+const speedDur    = el("speedDur");
+const speedSlider = el("speedSlider");
+const speedVal    = el("speedVal");
+
+function updateTimerDisplay() {
+  const pct = (timeLeft / speedSecs) * 100;
+  timerBar.style.width = pct + "%";
+  timerBar.className = "timer-bar" + (pct <= 25 ? " danger" : pct <= 50 ? " warn" : "");
+  timerLabel.textContent = timeLeft + "s";
+}
+
+function stopTimer() {
+  clearInterval(timerTick);
+  timerTick = null;
+}
+
+function startTimer() {
+  stopTimer();
+  timeLeft = speedSecs;
+  updateTimerDisplay();
+  timerTick = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      stopTimer();
+      if (!over) {
+        over = true;
+        losses++;
+        lossesEl.textContent = losses;
+        statusEl.className = "status lose";
+        statusEl.textContent = "Time's up! The word was " + secret + ".";
+        renderWord(true);
+        lockKeyboard();
+      }
+    }
+  }, 1000);
+}
+
+speedToggle.addEventListener("click", () => {
+  speedMode = !speedMode;
+  speedToggle.textContent = speedMode ? "⚡ On" : "⚡ Off";
+  speedToggle.classList.toggle("on", speedMode);
+  speedDur.style.display = speedMode ? "flex" : "none";
+  if (!speedMode) { stopTimer(); timerWrap.classList.remove("active"); }
+  newGame();
+});
+
+speedSlider.addEventListener("input", () => {
+  speedSecs = parseInt(speedSlider.value);
+  speedVal.textContent = speedSecs + "s";
+  if (speedMode && !over) startTimer();
+});
 
 // Keyboard support
 document.addEventListener("keydown", (e) => {
