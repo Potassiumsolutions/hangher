@@ -113,9 +113,110 @@
   .controls button.primary { background: var(--accent); color: #3a0c28; border-color: var(--accent); font-weight: 700; }
 
   footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 22px; }
+
+  /* Info button */
+  .info-btn {
+    position: absolute; top: 24px; right: 18px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--panel); border: 1px solid #6a4675;
+    color: var(--accent); font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .info-btn:hover { border-color: var(--accent); }
+
+  /* Modal overlay */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(20, 10, 24, 0.82); z-index: 100;
+    align-items: center; justify-content: center; padding: 18px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid #6a4675;
+    border-radius: 18px; padding: 28px 24px 24px;
+    max-width: 480px; width: 100%; max-height: 88vh;
+    overflow-y: auto; position: relative;
+  }
+  .modal h2 {
+    margin: 0 0 18px; font-size: 22px; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--muted);
+    font-size: 22px; cursor: pointer; padding: 4px 8px;
+    line-height: 1; border-radius: 6px;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .modal-close:hover { color: var(--ink); }
+  .info-section { margin-bottom: 20px; }
+  .info-section:last-child { margin-bottom: 0; }
+  .info-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+  }
+  .info-section p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .info-section p b { color: var(--ink); }
+  .info-divider {
+    border: none; border-top: 1px solid rgba(255,255,255,0.08);
+    margin: 18px 0;
+  }
 </style>
 </head>
 <body>
+<button class="info-btn" id="infoBtn" title="How to play">?</button>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <h2>How to Play</h2>
+
+    <div class="info-section">
+      <div class="info-label">The Game</div>
+      <p>Guess the hidden word one letter at a time. Each wrong guess adds a piece to the figure. Reveal the full word before all <b>9 pieces</b> appear — Head, Pigtails (×2), Body, Arms (×2), Skirt, Legs (×2) — or she's hanged.</p>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Category</div>
+      <p>Choose the theme for your word:<br>
+        <b>Animals</b> — creatures great and small<br>
+        <b>Countries</b> — nations of the world<br>
+        <b>Food &amp; Drink</b> — from ingredients to dishes<br>
+        <b>Science</b> — elements, concepts, and vocabulary<br>
+        <b>Around the House</b> — furniture, tools, and everyday items<br>
+        <b>🎲 Random (online)</b> — fetches a real random word from the internet. Requires a connection.</p>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Mode</div>
+      <p><b>Easy</b> — picks any word from the selected category.<br>
+        <b>Hard</b> — avoids common letters. The letters <b>R, S, T, L, N,</b> and <b>E</b> are the most frequent in English — in Hard mode, words containing the fewest of these are chosen, so your usual go-to guesses won't help much.</p>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Word Length</div>
+      <p>Filter words to a specific letter count — from <b>3</b> up to <b>12</b> — or leave it on <b>Any</b> to let the game choose freely. Shorter words are trickier; longer words give you more letters to work with.</p>
+    </div>
+
+    <hr class="info-divider">
+
+    <div class="info-section">
+      <div class="info-label">Controls</div>
+      <p><b>New Word</b> — start a fresh round at any time.<br>
+        <b>Give Up</b> — reveal the answer and end the current round.<br>
+        On desktop you can also press any <b>letter key</b> to guess, and <b>Enter</b> to start a new word.</p>
+    </div>
+  </div>
+</div>
+
 <div class="wrap">
   <header>
     <h1>Hang<span class="swing">Her</span></h1>
@@ -423,6 +524,11 @@ el("reveal").addEventListener("click", giveUp);
 catSel.addEventListener("change", newGame);
 modeSel.addEventListener("change", newGame);
 lenSel.addEventListener("change", newGame);
+
+const overlay = el("modalOverlay");
+el("infoBtn").addEventListener("click", () => overlay.classList.add("open"));
+el("modalClose").addEventListener("click", () => overlay.classList.remove("open"));
+overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
 
 newGame();
 </script>
